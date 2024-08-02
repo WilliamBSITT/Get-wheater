@@ -13,6 +13,16 @@ def convert_kelvin_to_fahrenheit(kelvin):
     fahrenheit = (kelvin - 273.15) * 9 / 5 + 32
     return fahrenheit
 
+def display(data, city):
+    temp_kelvin = data["main"]["temp"]
+    temp_feel_kelvin = data["main"]["feels_like"]
+    temp_fahrenheit = convert_kelvin_to_fahrenheit(temp_kelvin)
+    temp_feel_fahrenheit = convert_kelvin_to_fahrenheit(temp_feel_kelvin)
+    humdity = data["main"]["humidity"]
+    meteo = data["weather"][0]["description"]
+    print(f"The current weather in {city} is :\nA temperature of {temp_fahrenheit:.2f}°F with a fell of {temp_feel_fahrenheit:.2f}.")
+    print(f"The humidity is about {humdity}% and the wheater is {meteo}.")
+
 def main():
     load_dotenv()
     city = os.getenv("CITY")
@@ -23,7 +33,7 @@ def main():
     result = requests.get(url)
     if result.status_code == 200:
         wheater_data = result.json()
-        print(wheater_data)
+        display(wheater_data, city)
     else:
         print(f"Error {result.status_code}")
 
