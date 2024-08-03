@@ -76,6 +76,43 @@ def get_forecast_data(lat, lon, api_key):
         print(f"Response: {result_forecast.text}")
         exit(84)
 
+def parse_forecast_data(forecast_data):
+    daily_summary = {}
+    today = datetime.today().strftime("%d-%m-%Y")
+    
+    for entry in forecast_data["list"]:
+        date = datetime.fromtimestamp(entry["dt"]).strftime("%d-%m-%Y")
+        if date == today:
+            continue
+        
+        temp_min = convert_kelvin_to_celsius(entry["main"]["temp_min"])
+        temp_max = convert_kelvin_to_celsius(entry["main"]["temp_max"])
+        feels_like = convert_kelvin_to_celsius(entry["main"]["feels_like"])
+        humidity = entry["main"]["humidity"]
+        wind_speed = entry["wind"]["speed"]
+        weather_desc = entry["weather"][0]["description"]
+
+        if date not in daily_summary:
+            daily_summary[date] = {
+                "temp_min": temp_min,
+                "temp_max": temp_max,
+                "feels_like_sum": feels_like,
+                "wind_speed_sum": wind_speed,
+                "weather_desc_sum": [weather_desc],
+                "humidity": humidity,
+                "count": 1
+            }
+        else:
+            daily_summary[date]["temp_min"] = min(daily_summary[date]["temp_min"], temp_min)
+            daily_summary[date]["temp_max"] = max(daily_summary[date]["temp_max"], temp_max)
+            daily_summary[date]["feels_like_sum"] += feels_like
+            daily_summary[date]["wind_speed_sum"] += wind_speed
+            daily_summary[date]["weather_desc_sum"].append(weather_desc)
+            daily_summary[date]["humidity"] += humidity
+            daily_summary[date]["count"] += 1
+
+    return daily_summary
+
 def main():
     load_dotenv()
     city = os.getenv("CITY")
@@ -88,6 +125,7 @@ def main():
     lat, lon = find_gps_localisation(city, api_key)
     current_weather = get_current_weather(lat, lon, api_key)
     forecast_data = get_forecast_data(lat, lon, api_key)
+    daily_summary = parse_forecast_data(forecast_data)
 
 if __name__ == "__main__":
     main()
