@@ -16,7 +16,6 @@ meteo_translate = {
     "moderate rain": "Pluie modéré",
     "light rain": "Pluie légère"
 }
-lang = "US"
 
 def convert_kelvin_to_celsius(kelvin):
     return kelvin - 273.15
@@ -34,7 +33,8 @@ def find_gps_localisation(city, api_key):
             exit(84)
         lat = geodata[0]["lat"]
         lon = geodata[0]["lon"]
-        return lat, lon
+        lang = geodata[0]["country"]
+        return lat, lon, lang
     
     print(f"Error {loc_geo.status_code} while retrieving the city's coordinates.")
     print(f"Response: {loc_geo.text}")
@@ -51,7 +51,6 @@ def get_current_weather(lat, lon, api_key):
         humidity = weather_data["main"]["humidity"]
         wind_speed = weather_data["wind"]["speed"] * 3.6  # Convert m/s to km/h
         weather_desc = weather_data["weather"][0]["description"]
-        lang = weather_data["sys"]["country"]
         
         return {
             "temp": temp,
@@ -113,6 +112,47 @@ def parse_forecast_data(forecast_data):
 
     return daily_summary
 
+def display_weather(daily_summary, current_weather, lang):
+    if lang == "FR":
+        print(f"Météo en direct:\nTempérature: {current_weather['temp']:.2f}°C\nTempérature ressentie: {current_weather['feels_like']:.2f}°C")
+        print(f"Humidité: {current_weather['humidity']:.2f}%\nVitesse du vent: {current_weather['wind_speed']:.2f} Km/h")
+        try:
+            print(f"Météo: {meteo_translate[current_weather['weather_desc']]}")
+        except KeyError:
+            print(f"Erreur: {current_weather['weather_desc']} n'a pas de traduction")
+            print(f"Météo: {current_weather['weather_desc']}")
+        print("-------------\n\n")
+
+        for date, summary in daily_summary.items():
+            avg_feels_like = summary["feels_like_sum"] / summary["count"]
+            avg_wind_speed = (summary["wind_speed_sum"] / summary["count"]) * 3.6
+            avg_weather_desc = max(set(summary["weather_desc_sum"]), key=summary["weather_desc_sum"].count)
+            humidity = summary["humidity"] / summary["count"]
+            print(f"Date: {date}\nTempérature minimale: {summary['temp_min']:.2f}°C\nTempérature maximale: {summary['temp_max']:.2f}°C")
+            print(f"Température ressentie moyenne: {avg_feels_like:.2f}°C\nVitesse du vent moyenne: {avg_wind_speed:.2f} Km/h\nHumidité: {humidity:.2f} %")
+            try:
+                print(f"Météo: {meteo_translate[avg_weather_desc]}")
+            except KeyError:
+                print(f"Erreur: {avg_weather_desc} n'a pas de traduction")
+                print(f"Météo: {avg_weather_desc}")
+            print("-------------")
+    else:
+        print(f"Current weather:\nTemperature: {current_weather['temp']:.2f}°F\nFeels like: {current_weather['feels_like']:.2f}°F\nHumidity: {current_weather['humidity']:.2f}%")
+        print(f"Wind speed: {current_weather['wind_speed']:.2f} mph\nWeather: {current_weather['weather_desc']}")
+        print("-------------\n\n")
+        
+        for date, summary in daily_summary.items():
+            min_temp = convert_celsius_to_fahrenheit(summary['temp_min'])
+            max_temp = convert_celsius_to_fahrenheit(summary['temp_max'])
+            avg_feels_like = convert_celsius_to_fahrenheit(summary['feels_like_sum'] / summary['count'])
+            avg_wind_speed = summary['wind_speed_sum'] * 2.237 / summary['count']
+            avg_weather_desc = max(set(summary["weather_desc_sum"]), key=summary["weather_desc_sum"].count)
+            humidity = summary['humidity'] / summary['count']
+
+            print(f"Date: {date}\nMinimal temperature: {min_temp:.2f}°F\nMaximal temperature: {max_temp:.2f}°F\nAverage feels like temperature: {avg_feels_like:.2f}°F")
+            print(f"Average wind speed: {avg_wind_speed:.2f} mph\nAverage humidity: {humidity:.2f} %\nWeather: {avg_weather_desc}")
+            print("-------------")
+
 def main():
     load_dotenv()
     city = os.getenv("CITY")
@@ -122,10 +162,11 @@ def main():
         print("Error, it seems there was an issue accessing data from dotenv.")
         exit(84)
     
-    lat, lon = find_gps_localisation(city, api_key)
+    lat, lon, lang = find_gps_localisation(city, api_key)
     current_weather = get_current_weather(lat, lon, api_key)
     forecast_data = get_forecast_data(lat, lon, api_key)
     daily_summary = parse_forecast_data(forecast_data)
+    display_weather(daily_summary, current_weather, lang)
 
 if __name__ == "__main__":
     main()
