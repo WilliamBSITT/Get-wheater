@@ -4,9 +4,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # For this project I use the free API of OpenWeather
-geocoding_url_base = "https://api.openweathermap.org/geo/1.0/direct?"
-forecast_url_base = "https://api.openweathermap.org/data/2.5/forecast?"
-current_weather_url_base = "https://api.openweathermap.org/data/2.5/weather?"
+geocoding_url_base = "https://api.openweathermap.org/geo/1.0/direct?" # Url for get the position of the city
+forecast_url_base = "https://api.openweathermap.org/data/2.5/forecast?" # Url for the forecast wheater
+current_weather_url_base = "https://api.openweathermap.org/data/2.5/weather?" # Url for current wheater
+# Dictionnary for the translation of the wheater
 meteo_translate = {
     "broken clouds": "éclaircies",
     "clear sky": "ensoleillé",
@@ -23,6 +24,7 @@ def convert_kelvin_to_celsius(kelvin):
 def convert_celsius_to_fahrenheit(celsius):
     return (celsius * 9 / 5) + 32
 
+# Get the latitute & longitute of the city and the country for the potential translate
 def find_gps_localisation(city, api_key):
     geocoding_url = f"{geocoding_url_base}q={city}&limit=1&appid={api_key}"
     loc_geo = requests.get(geocoding_url)
@@ -40,6 +42,7 @@ def find_gps_localisation(city, api_key):
     print(f"Response: {loc_geo.text}")
     exit(84)
 
+# This function return the current wheater
 def get_current_weather(lat, lon, api_key):
     current_weather_url = f"{current_weather_url_base}lat={lat}&lon={lon}&appid={api_key}"
     result_current_weather = requests.get(current_weather_url)
@@ -64,6 +67,7 @@ def get_current_weather(lat, lon, api_key):
         print(f"Response: {result_current_weather.text}")
         exit(84)
 
+# This function get the data in a json format for the forecast
 def get_forecast_data(lat, lon, api_key):
     forecast_url = f"{forecast_url_base}lat={lat}&lon={lon}&appid={api_key}"
     result_forecast = requests.get(forecast_url)
@@ -75,6 +79,7 @@ def get_forecast_data(lat, lon, api_key):
         print(f"Response: {result_forecast.text}")
         exit(84)
 
+# This function parse the forecast and manage the data
 def parse_forecast_data(forecast_data):
     daily_summary = {}
     today = datetime.today().strftime("%d-%m-%Y")
@@ -112,6 +117,7 @@ def parse_forecast_data(forecast_data):
 
     return daily_summary
 
+# This function is for the display of all the wheater data
 def display_weather(daily_summary, current_weather, lang):
     if lang == "FR":
         print(f"Météo en direct:\nTempérature: {current_weather['temp']:.2f}°C\nTempérature ressentie: {current_weather['feels_like']:.2f}°C")
@@ -154,10 +160,12 @@ def display_weather(daily_summary, current_weather, lang):
             print("-------------")
 
 def main():
+    # Load data from dotenv
     load_dotenv()
     city = os.getenv("CITY")
     api_key = os.getenv("API_KEY")
     
+    # Catch the error if one element is not specified in the dotenv
     if city is None or api_key is None:
         print("Error, it seems there was an issue accessing data from dotenv.")
         exit(84)
